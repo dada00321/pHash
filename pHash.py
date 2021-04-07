@@ -169,42 +169,6 @@ class PHash:
         return x_coords, y_coords
     
     def _compute_mean_level(self, img, x_coords, y_coords, P=None):
-        """Computes array of greyness means.
-        Corresponds to 'step 3'
-        Args:
-            img (numpy.ndarray): n x m array of floats -- the greyscale img. Typically,
-                the output of preprocess_img
-            x_coords (numpy.ndarray): array of row numbers
-            y_coords (numpy.ndarray): array of column numbers
-            P (Optional[int]): size of boxes in pixels (default None)
-        Returns:
-            an N x N array of average greyscale around the gridpoint, where N is the
-                number of grid points
-        Examples:
-            >>> img = gis.preprocess_img('https://pixabay.com/static/uploads/photo/2012/11/28/08/56/mona-lisa-67506_960_720.jpg')
-            >>> window = gis.crop_img(img)
-            >>> grid = gis.compute_grid_points(img, window=window)
-            >>> gis.compute_mean_level(img, grid[0], grid[1])
-            array([[ 0.62746325,  0.62563642,  0.62348078,  0.50651686,  0.37438874,
-                     0.0644063 ,  0.55968952,  0.59356148,  0.60473832],
-                   [ 0.35337797,  0.50272543,  0.27711346,  0.42384226,  0.39006181,
-                     0.16773968,  0.10471924,  0.33647144,  0.62902124],
-                   [ 0.20307514,  0.19021892,  0.12435402,  0.44990121,  0.38527996,
-                     0.08339507,  0.05530059,  0.18469107,  0.21125228],
-                   [ 0.25727387,  0.1669419 ,  0.08964046,  0.1372754 ,  0.48529236,
-                     0.39894004,  0.10387907,  0.11282135,  0.30014612],
-                   [ 0.23447867,  0.15702549,  0.25232943,  0.75172715,  0.79488688,
-                     0.4943538 ,  0.29645163,  0.10714578,  0.0629376 ],
-                   [ 0.22167555,  0.04839472,  0.10125833,  0.1550749 ,  0.14346914,
-                     0.04713144,  0.10095568,  0.15349296,  0.04456733],
-                   [ 0.09233709,  0.11210942,  0.05361996,  0.07066566,  0.04191625,
-                     0.03548839,  0.03420656,  0.05025029,  0.03519956],
-                   [ 0.19226873,  0.20647194,  0.62972106,  0.45514529,  0.05620413,
-                     0.03383168,  0.03413588,  0.04741828,  0.02987698],
-                   [ 0.05799523,  0.23310153,  0.43719717,  0.27666873,  0.25106573,
-                     0.11094163,  0.10180622,  0.04633349,  0.02704855]])
-        """
-
         if P is None:
             P = max([2.0, int(0.5 + min(img.shape)/20.)])     # per the paper
 
@@ -223,45 +187,6 @@ class PHash:
         return avg_grey
     
     def _compute_differentials(self, grey_level_matrix,  diagonal_neighbors=True):
-        """Computes differences in greylevels for neighboring grid points.
-        First part of 'step 4' in the paper.
-        Returns n x n x 8 rank 3 array for an n x n grid (if diagonal_neighbors == True)
-        The n x nth coordinate corresponds to a grid point.  The eight values are
-        the differences between neighboring grid points, in this order:
-        upper left
-        upper
-        upper right
-        left
-        right
-        lower left
-        lower
-        lower right
-        Args:
-            grey_level_matrix (numpy.ndarray): grid of values sampled from image
-            diagonal_neighbors (Optional[boolean]): whether or not to use diagonal
-                neighbors (default True)
-        Returns:
-            a n x n x 8 rank 3 numpy array for an n x n grid (if diagonal_neighbors == True)
-        Examples:
-            >>> img = gis.preprocess_image('https://pixabay.com/static/uploads/photo/2012/11/28/08/56/mona-lisa-67506_960_720.jpg')
-            >>> window = gis.crop_image(img)
-            >>> grid = gis.compute_grid_points(img, window=window)
-            >>> grey_levels = gis.compute_mean_level(img, grid[0], grid[1])
-            >>> gis.compute_differentials(grey_levels)
-            array([[[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-                       0.00000000e+00,   1.82683143e-03,  -0.00000000e+00,
-                       2.74085276e-01,   1.24737821e-01],
-                    [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-                      -1.82683143e-03,   2.15563930e-03,   2.72258444e-01,
-                       1.22910990e-01,   3.48522956e-01],
-                    [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-                      -2.15563930e-03,   1.16963917e-01,   1.20755351e-01,
-                       3.46367317e-01,   1.99638513e-01],
-                    [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-                      -1.16963917e-01,   1.32128118e-01,   2.29403399e-01,
-                       8.26745956e-02,   1.16455050e-01],
-                    ...
-        """
         right_neighbors = -np.concatenate((np.diff(grey_level_matrix),
                                            np.zeros(grey_level_matrix.shape[0]).
                                            reshape((grey_level_matrix.shape[0], 1))),
@@ -311,39 +236,6 @@ class PHash:
     
     def _normalize_and_threshold(self, difference_array,
                                  identical_tolerance=2/255., n_levels=2):
-        """Normalizes difference matrix in place.
-        'Step 4' of the paper.  The flattened version of this array is the image signature.
-        Args:
-            difference_array (numpy.ndarray): n x n x l array, where l are the differences between
-                the grid point and its neighbors. Typically the output of compute_differentials
-            identical_tolerance (Optional[float]): maximum amount two gray values can differ and
-                still be considered equivalent (default 2/255)
-            n_levels (Optional[int]): bin differences into 2 n + 1 bins (e.g. n_levels=2 -> [-2, -1,
-                0, 1, 2])
-        Examples:
-            >>> img = gis.preprocess_image('https://pixabay.com/static/uploads/photo/2012/11/28/08/56/mona-lisa-67506_960_720.jpg')
-            >>> window = gis.crop_image(img)
-            >>> grid = gis.compute_grid_points(img, window=window)
-            >>> grey_levels = gis.compute_mean_level(img, grid[0], grid[1])
-            >>> m = gis.compute_differentials(grey_levels)
-            >>> m
-            array([[[ 0.,  0.,  0.,  0.,  0.,  0.,  2.,  2.],
-                    [ 0.,  0.,  0.,  0.,  0.,  2.,  2.,  2.],
-                    [ 0.,  0.,  0.,  0.,  2.,  2.,  2.,  2.],
-                    [ 0.,  0.,  0., -2.,  2.,  2.,  1.,  2.],
-                    [ 0.,  0.,  0., -2.,  2., -1., -1.,  2.],
-                    [ 0.,  0.,  0., -2., -2., -2., -2., -1.],
-                    [ 0.,  0.,  0.,  2., -1.,  2.,  2.,  2.],
-                    [ 0.,  0.,  0.,  1., -1.,  2.,  2., -1.],
-                    [ 0.,  0.,  0.,  1.,  0.,  2., -1.,  0.]],
-                   [[ 0., -2., -2.,  0., -2.,  0.,  2.,  2.],
-                    [-2., -2., -2.,  2.,  2.,  2.,  2.,  2.],
-                    [-2., -2., -2., -2., -2.,  1.,  2., -2.],
-                    [-2., -1.,  1.,  2.,  1.,  2., -1.,  1.],
-                    [-2.,  1.,  2., -1.,  2., -1.,  0.,  2.],
-                    ...
-        """
-
         # set very close values as equivalent
         mask = np.abs(difference_array) < identical_tolerance
         difference_array[mask] = 0.
@@ -414,19 +306,6 @@ class PHash:
             return None
 
     def calculate_normalized_distance(self, _a, _b):
-        """Compute normalized distance between two points.
-        Computes || b - a || / ( ||b|| + ||a||)
-        Args:
-            _a (numpy.ndarray): array of size m
-            _b (numpy.ndarray): array of size m
-        Returns:
-            normalized distance between signatures (float)
-        Examples:
-            >>> a = gis.generate_signature('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.jpg/687px-Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.jpg')
-            >>> b = gis.generate_signature('https://pixabay.com/static/uploads/photo/2012/11/28/08/56/mona-lisa-67506_960_720.jpg')
-            >>> gis.normalized_distance(a, b)
-            0.22095170140933634
-        """
         b = _b.astype(int)
         a = _a.astype(int)
         norm_diff = np.linalg.norm(b - a)
