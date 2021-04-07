@@ -145,17 +145,6 @@ class PHash:
         return [(r1, r2), (c1, c2)]
     
     def _compute_grid_points(self, img, n_grid_points=9, boundaries=None):
-        """
-        Returns:
-            tuple of arrays indicating the vertical and horizontal locations of the grid points
-        Examples:
-            >>> img = gis.preprocess_img('https://pixabay.com/static/uploads/photo/2012/11/28/08/56/mona-lisa-67506_960_720.jpg')
-            >>> boundaries = gis.crop_img(img)
-            >>> gis.compute_grid_points(img, boundaries=boundaries)
-            (array([100, 165, 230, 295, 360, 424, 489, 554, 619]),
-             array([ 66, 109, 152, 195, 238, 280, 323, 366, 409]))
-        """
-
         # if no boundaries are provided, use the entire image
         if boundaries is None:
             h, w = img.shape
